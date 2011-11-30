@@ -186,13 +186,12 @@ void solve(int levels, int hole){
     //std::vector<std::vector<Move>> solutions;
     unsigned long solutions = 0;
 
-    bool stop = false;
     bool backtrace = false;
     bool restart = false;
 
     Move lastMove;
 
-    while(!stop){
+    while(true){
         for(unsigned int i = 0; i < cases.size(); ++i){
             Direction ignore = Direction::IGNORE;
 
@@ -232,12 +231,14 @@ void solve(int levels, int hole){
         if(win(puzzle, cases)){
             ++solutions;
 
-            if(solutions % 1000 == 0){
+            /*if(solutions % 1000 == 0){
                 std::cout << solutions << std::endl;
-            }
+            }*/
 
             //solutions.push_back(solution);
-
+        } 
+        
+        if(!solution.empty()){
             //We undo the last move
             lastMove = solution.back();
             solution.pop_back();
@@ -247,19 +248,9 @@ void solve(int levels, int hole){
             puzzle[lastMove.to] = false;
 
             backtrace = true;
-        } else if(solution.empty()){
-            //We searched everything
-            stop = true;
         } else {
-            //We undo the last move
-            lastMove = solution.back();
-            solution.pop_back();
-
-            puzzle[lastMove.from] = true;
-            puzzle[lastMove.by] = true;
-            puzzle[lastMove.to] = false;
-
-            backtrace = true;
+            //We searched everything
+            break;
         }
     }
    
