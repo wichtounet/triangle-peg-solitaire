@@ -184,7 +184,7 @@ void solve(int levels, int hole){
 
     std::vector<Move> solution;
     //std::vector<std::vector<Move>> solutions;
-    int solutions = 0;
+    unsigned long solutions = 0;
 
     bool stop = false;
     bool backtrace = false;
@@ -231,6 +231,11 @@ void solve(int levels, int hole){
         
         if(win(puzzle, cases)){
             ++solutions;
+
+            if(solutions % 1000 == 0){
+                std::cout << solutions << std::endl;
+            }
+
             //solutions.push_back(solution);
 
             //We undo the last move
