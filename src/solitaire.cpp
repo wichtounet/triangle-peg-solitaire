@@ -160,7 +160,7 @@ void solve(int levels, int hole){
     std::cout << "down left " << (unsigned int) Direction::DOWN_LEFT << std::endl;
     std::cout << "down right " << (unsigned int) Direction::DOWN_RIGHT << std::endl;*/
 
-    std::vector<int> puzzle2(levels * levels + 1, true);
+    std::vector<int> puzzle(levels * levels + 1, true);
 
     std::vector<unsigned int> cases;
     cases.reserve((levels + 1) * (levels / 2));
@@ -207,7 +207,7 @@ void solve(int levels, int hole){
     
     int mappedHole = map(hole, levels);
     assert(mappedHole <= levels * levels);
-    puzzle2[mappedHole] = false;
+    puzzle[mappedHole] = false;
 
     std::vector<Move2> solution;
     
@@ -239,10 +239,10 @@ void solve(int levels, int hole){
                 
                 assert(hole == move.to);
 
-                if(puzzle2[move.from] && !puzzle2[hole] && puzzle2[move.by]){
-                    puzzle2[move.from] = false;
-                    puzzle2[move.by] = false;
-                    puzzle2[move.to] = true;
+                if(puzzle[move.from] && !puzzle[hole] && puzzle[move.by]){
+                    puzzle[move.from] = false;
+                    puzzle[move.by] = false;
+                    puzzle[move.to] = true;
                     
                     solution.push_back({i, j, move.from, move.by, move.to, holes});
 
@@ -265,16 +265,16 @@ void solve(int levels, int hole){
             continue;
         }
         
-        solutions += win(puzzle2, cases);
+        solutions += win(puzzle, cases);
         
         if(!solution.empty()){
             //We undo the last move
             lastMove2 = solution.back();
             solution.pop_back();
 
-            puzzle2[lastMove2.from] = true;
-            puzzle2[lastMove2.by] = true;
-            puzzle2[lastMove2.to] = false;
+            puzzle[lastMove2.from] = true;
+            puzzle[lastMove2.by] = true;
+            puzzle[lastMove2.to] = false;
 
             holes.erase(remove(holes.begin(), holes.end(), lastMove2.by), holes.end());            
             holes.erase(remove(holes.begin(), holes.end(), lastMove2.from), holes.end());            
