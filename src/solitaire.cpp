@@ -7,7 +7,7 @@
 #include <unordered_set>
 #include <algorithm>
 
-void solve(int levels, int hole);
+void solve(int hole);
 void display(const std::vector<unsigned int>& puzzle);
 
 int levels;
@@ -19,7 +19,7 @@ int main(int argc, const char* argv[]) {
         levels = strtol(argv[1], 0, 10); 
         int hole = strtol(argv[2], 0, 10); 
 
-        solve(levels, hole);
+        solve(hole);
     }
 }
 
@@ -128,7 +128,7 @@ struct Move {
     unsigned int by;
 };
 
-void solve(int levels, int hole){
+void solve(int hole){
     std::cout << "Generate solutions for a triangular solitaire with " << levels << " levels" << std::endl;
     std::cout << "With hole at position " << hole << std::endl;
 
