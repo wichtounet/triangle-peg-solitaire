@@ -160,7 +160,6 @@ void solve(int levels, int hole){
     std::cout << "down left " << (unsigned int) Direction::DOWN_LEFT << std::endl;
     std::cout << "down right " << (unsigned int) Direction::DOWN_RIGHT << std::endl;*/
 
-    std::vector<int> puzzle(levels * levels + 1, true);
     std::vector<int> puzzle2(levels * levels + 1, true);
 
     std::vector<unsigned int> cases;
@@ -175,131 +174,49 @@ void solve(int levels, int hole){
     }
 
     //std::cout << std::endl;
-    
-    std::vector<std::vector<Move>> intos(levels * levels + 1);
 
     //Precalculate all the moves
-    std::vector<std::vector<Move>> moves(levels * levels + 1);
+    std::vector<std::vector<Move>> intos(levels * levels + 1);
     for(unsigned int i = 0; i < cases.size(); ++i){
         int index = cases[i];
 
         if(canMoveLeft(index)){
-            moves[index].push_back({i, index, index - 1, moveLeft(index), Direction::LEFT});
-            intos[moveLeft(index)].push_back(moves[index].back());
+            intos[moveLeft(index)].push_back({i, index, index - 1, moveLeft(index), Direction::LEFT});
         }
 
         if(canMoveRight(index)){
-            moves[index].push_back({i, index, index + 1, moveRight(index), Direction::RIGHT});
-            intos[moveRight(index)].push_back(moves[index].back());
+            intos[moveRight(index)].push_back({i, index, index + 1, moveRight(index), Direction::RIGHT});
         }
 
         if(canMoveUpRight(index)){
-            moves[index].push_back({i, index, index - levels, moveUpRight(index), Direction::UP_RIGHT});
-            intos[moveUpRight(index)].push_back(moves[index].back());
+            intos[moveUpRight(index)].push_back({i, index, index - levels, moveUpRight(index), Direction::UP_RIGHT});
         }
 
         if(canMoveUpLeft(index)){
-            moves[index].push_back({i, index, index - levels - 1, moveUpLeft(index), Direction::UP_LEFT});
-            intos[moveUpLeft(index)].push_back(moves[index].back());
+            intos[moveUpLeft(index)].push_back({i, index, index - levels - 1, moveUpLeft(index), Direction::UP_LEFT});
         }
 
         if(canMoveDownRight(index)){
-            moves[index].push_back({i, index, index + levels + 1, moveDownRight(index), Direction::DOWN_RIGHT});
-            intos[moveDownRight(index)].push_back(moves[index].back());
+            intos[moveDownRight(index)].push_back({i, index, index + levels + 1, moveDownRight(index), Direction::DOWN_RIGHT});
         }
 
         if(canMoveDownLeft(index)){
-            moves[index].push_back({i, index, index + levels, moveDownLeft(index), Direction::DOWN_LEFT});
-            intos[moveDownLeft(index)].push_back(moves[index].back());
+            intos[moveDownLeft(index)].push_back({i, index, index + levels, moveDownLeft(index), Direction::DOWN_LEFT});
         }
-
-        /*std::cout << index << " has " << moves[index].size() << std::endl;
-        for(Move& move : moves[index]){
-            std::cout << "\t can move from " << move.from << " to " << move.to << " by " << move.by << std::endl;
-        }*/
     }
     
     int mappedHole = map(hole, levels);
     assert(mappedHole <= levels * levels);
-    puzzle[mappedHole] = false;
     puzzle2[mappedHole] = false;
 
-    //display(puzzle, levels);
-  
-    std::vector<Move> solution;
     std::vector<Move2> solution2;
     
-    unsigned long solutions = 0;
     unsigned long solutions2 = 0;
 
     bool backtrace = false;
     bool restart = false;
 
-    Move lastMove;
-
-    while(true){
-        for(unsigned int i = 0; i < cases.size(); ++i){
-            Direction ignore = Direction::IGNORE;
-
-            if(backtrace){
-                i = lastMove.i;
-                ignore = lastMove.direction;
-                backtrace = false;
-            }
-            
-            unsigned int index = cases[i];
-
-            if(puzzle[index]){
-                for(Move& move : moves[index]){
-                    assert(move.i == i);
-                    assert(index == cases[move.i]);
-                    assert(move.from == index);
-
-                    if(move.direction > ignore && !puzzle[move.to] && puzzle[move.by]){
-                        puzzle[index] = false;
-                        puzzle[move.by] = false;
-                        puzzle[move.to] = true;
-
-                        solution.push_back(move);
-
-                        restart = true;
-                        break;
-                    }
-                }
-
-                if(restart){
-                    break;
-                }
-            }
-        }
-       
-        if(restart){
-            restart = false;
-            continue;
-        }
-        
-        solutions += win(puzzle, cases);
-        
-        if(!solution.empty()){
-            //We undo the last move
-            lastMove = solution.back();
-            solution.pop_back();
-
-            puzzle[lastMove.from] = true;
-            puzzle[lastMove.by] = true;
-            puzzle[lastMove.to] = false;
-
-            backtrace = true;
-        } else {
-            //We searched everything
-            break;
-        }
-    }
-
     Move2 lastMove2;
-
-    backtrace = false;
-    restart = false;
 
     std::vector<unsigned int> holes;
     holes.push_back(mappedHole);
@@ -370,8 +287,7 @@ void solve(int levels, int hole){
         }
     }
    
-    std::cout << "1: Found " << solutions/*.size()*/ << " solutions" << std::endl;
-    std::cout << "2: Found " << solutions2/*.size()*/ << " solutions" << std::endl;
+    std::cout << "Found " << solutions2/*.size()*/ << " solutions" << std::endl;
 }
 
 void display(const std::vector<int>& puzzle, int levels){
