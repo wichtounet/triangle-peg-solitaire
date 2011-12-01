@@ -209,9 +209,9 @@ void solve(int levels, int hole){
     assert(mappedHole <= levels * levels);
     puzzle2[mappedHole] = false;
 
-    std::vector<Move2> solution2;
+    std::vector<Move2> solution;
     
-    unsigned long solutions2 = 0;
+    unsigned long solutions = 0;
 
     bool backtrace = false;
     bool restart = false;
@@ -244,7 +244,7 @@ void solve(int levels, int hole){
                     puzzle2[move.by] = false;
                     puzzle2[move.to] = true;
                     
-                    solution2.push_back({i, j, move.from, move.by, move.to, holes});
+                    solution.push_back({i, j, move.from, move.by, move.to, holes});
 
                     holes.erase(remove(holes.begin(), holes.end(), move.to), holes.end());            
                     holes.push_back(move.by);
@@ -265,12 +265,12 @@ void solve(int levels, int hole){
             continue;
         }
         
-        solutions2 += win(puzzle2, cases);
+        solutions += win(puzzle2, cases);
         
-        if(!solution2.empty()){
+        if(!solution.empty()){
             //We undo the last move
-            lastMove2 = solution2.back();
-            solution2.pop_back();
+            lastMove2 = solution.back();
+            solution.pop_back();
 
             puzzle2[lastMove2.from] = true;
             puzzle2[lastMove2.by] = true;
@@ -287,7 +287,7 @@ void solve(int levels, int hole){
         }
     }
    
-    std::cout << "Found " << solutions2/*.size()*/ << " solutions" << std::endl;
+    std::cout << "Found " << solutions/*.size()*/ << " solutions" << std::endl;
 }
 
 void display(const std::vector<int>& puzzle, int levels){
