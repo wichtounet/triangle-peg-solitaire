@@ -111,7 +111,7 @@ inline bool canMoveDownLeft(int index){
     return level(moveDownLeft(index)) == l + 2 && valid(moveDownLeft(index));
 }
 
-inline bool win(const std::vector<int>& puzzle, const std::vector<unsigned int>& cases){
+inline bool win(const std::vector<unsigned int>& puzzle, const std::vector<unsigned int>& cases){
     int sum = 0;
 
     for(int index : cases){
@@ -131,36 +131,18 @@ enum class Direction : unsigned int {
     DOWN_RIGHT
 };
 
-struct Move {
-    unsigned int i;
-    unsigned int from;
-    unsigned int by;
-    unsigned int to;
-    Direction direction;
-};
-
 struct Move2 {
     unsigned int i;
     unsigned int j;
     unsigned int from;
     unsigned int by;
-    unsigned int to;
-    std::vector<unsigned int> holes;
 };
 
 void solve(int levels, int hole){
     std::cout << "Generate solutions for a triangular solitaire with " << levels << " levels" << std::endl;
     std::cout << "With hole at position " << hole << std::endl;
 
-    /*std::cout << "ignore " << (unsigned int) Direction::IGNORE << std::endl;
-    std::cout << "left " << (unsigned int) Direction::LEFT << std::endl;
-    std::cout << "right " << (unsigned int) Direction::RIGHT << std::endl;
-    std::cout << "up left " << (unsigned int) Direction::UP_LEFT << std::endl;
-    std::cout << "up right " << (unsigned int) Direction::UP_RIGHT << std::endl;
-    std::cout << "down left " << (unsigned int) Direction::DOWN_LEFT << std::endl;
-    std::cout << "down right " << (unsigned int) Direction::DOWN_RIGHT << std::endl;*/
-
-    std::vector<int> puzzle(levels * levels + 1, true);
+    std::vector<unsigned int> puzzle(levels * levels + 1, true);
 
     std::vector<unsigned int> cases;
     cases.reserve((levels + 1) * (levels / 2));
@@ -176,32 +158,41 @@ void solve(int levels, int hole){
     //std::cout << std::endl;
 
     //Precalculate all the moves
-    std::vector<std::vector<Move>> intos(levels * levels + 1);
+    std::vector<std::vector<Move2>> intos(levels * levels + 1);
     for(unsigned int i = 0; i < cases.size(); ++i){
         int index = cases[i];
 
         if(canMoveLeft(index)){
-            intos[moveLeft(index)].push_back({i, index, index - 1, moveLeft(index), Direction::LEFT});
+            intos[moveLeft(index)].push_back({i, -1, index, index - 1});
         }
 
         if(canMoveRight(index)){
-            intos[moveRight(index)].push_back({i, index, index + 1, moveRight(index), Direction::RIGHT});
+            intos[moveRight(index)].push_back({i, -1, index, index + 1});
         }
 
         if(canMoveUpRight(index)){
-            intos[moveUpRight(index)].push_back({i, index, index - levels, moveUpRight(index), Direction::UP_RIGHT});
+            intos[moveUpRight(index)].push_back({i, -1, index, index - levels});
         }
 
         if(canMoveUpLeft(index)){
-            intos[moveUpLeft(index)].push_back({i, index, index - levels - 1, moveUpLeft(index), Direction::UP_LEFT});
+            intos[moveUpLeft(index)].push_back({i, -1, index, index - levels - 1});
         }
 
         if(canMoveDownRight(index)){
-            intos[moveDownRight(index)].push_back({i, index, index + levels + 1, moveDownRight(index), Direction::DOWN_RIGHT});
+            intos[moveDownRight(index)].push_back({i, -1, index, index + levels + 1});
         }
 
         if(canMoveDownLeft(index)){
-            intos[moveDownLeft(index)].push_back({i, index, index + levels, moveDownLeft(index), Direction::DOWN_LEFT});
+            intos[moveDownLeft(index)].push_back({i, -1, index, index + levels});
+        }
+    }
+
+    for(unsigned int i = 0; i < cases.size(); ++i){
+        unsigned int hole = cases[i];
+        
+        for(unsigned int j = 0; j < intos[hole].size(); ++j){
+            intos[hole][j].i = i;
+            intos[hole][j].j = j;
         }
     }
     
@@ -218,37 +209,31 @@ void solve(int levels, int hole){
 
     Move2 lastMove2;
 
-    std::vector<unsigned int> holes;
-    holes.push_back(mappedHole);
-
     while(true){
-        for(unsigned int i = 0; i < holes.size(); ++i){
+        for(unsigned int i = 0; i < cases.size(); ++i){
             unsigned int j = 0;
 
             if(backtrace){
-                holes.swap(lastMove2.holes);
                 i = lastMove2.i;
                 j = lastMove2.j + 1;
                 backtrace = false;
             }
+            
+            unsigned int hole = cases[i];
 
-            unsigned int hole = holes[i];
+            if(puzzle[hole]){
+                continue;
+            }
 
             for(; j < intos[hole].size(); ++j){
-                Move& move = intos[hole][j];
+                Move2& move = intos[hole][j];
                 
-                assert(hole == move.to);
-
-                if(puzzle[move.from] && !puzzle[hole] && puzzle[move.by]){
+                if(puzzle[move.from] && puzzle[move.by]){
                     puzzle[move.from] = false;
                     puzzle[move.by] = false;
-                    puzzle[move.to] = true;
+                    puzzle[hole] = true;
                     
-                    solution.push_back({i, j, move.from, move.by, move.to, holes});
-
-                    holes.erase(remove(holes.begin(), holes.end(), move.to), holes.end());            
-                    holes.push_back(move.by);
-                    holes.push_back(move.from);
+                    solution.push_back(move);
                     
                     restart = true;
                     break;
@@ -274,11 +259,7 @@ void solve(int levels, int hole){
 
             puzzle[lastMove2.from] = true;
             puzzle[lastMove2.by] = true;
-            puzzle[lastMove2.to] = false;
-
-            holes.erase(remove(holes.begin(), holes.end(), lastMove2.by), holes.end());            
-            holes.erase(remove(holes.begin(), holes.end(), lastMove2.from), holes.end());            
-            holes.push_back(lastMove2.to);
+            puzzle[cases[lastMove2.i]] = false;
             
             backtrace = true;
         } else {
@@ -290,7 +271,7 @@ void solve(int levels, int hole){
     std::cout << "Found " << solutions/*.size()*/ << " solutions" << std::endl;
 }
 
-void display(const std::vector<int>& puzzle, int levels){
+void display(const std::vector<unsigned int>& puzzle, int levels){
     for(int i = 1; i <= levels; ++i){
         int start = (i - 1) * levels + 1;
 
