@@ -7,10 +7,11 @@
 #include <unordered_set>
 #include <algorithm>
 
+unsigned int levels;
+
+
 void solve(int hole);
 void display(const std::vector<unsigned int>& puzzle);
-
-unsigned int levels;
 
 int main(int argc, const char* argv[]) {
     if(argc < 3){
@@ -138,6 +139,16 @@ inline unsigned int symetric_score(const std::vector<unsigned int>& puzzle){
     return score;
 }
 
+inline unsigned int score(const std::vector<unsigned int>& puzzle, const std::vector<unsigned int>& indexes){
+    unsigned int score = 0;
+
+    for(unsigned int i = 1; i < puzzle.size(); ++i){
+        score += puzzle[i] * indexes[i];
+    }
+
+    return score;
+}
+
 inline bool win(const std::vector<unsigned int>& puzzle){
     int sum = 0;
 
@@ -155,13 +166,58 @@ struct Move {
     unsigned int by;
 };
 
+inline void generate_rotate_twice_indexes(std::vector<unsigned int>& rotate_twice_indexes){
+    std::vector<std::stack<unsigned int>> indexes;
+
+    int index = 1;
+
+    for(unsigned int level = 1; level <= levels; ++level){
+        indexes.push_back(std::stack<unsigned int>());
+
+        for(unsigned int col = 0; col < level; ++col){
+            indexes[level - 1].push(index);
+    
+            index++;
+        }
+    }
+    
+    int tested = ((levels + 1) * levels) / 2;
+    int current_level = levels;
+    int it = 1;
+    int d = 0;
+    
+    unsigned int acc = 1;
+    while(tested > 0){
+        int index = indexes[current_level - 1].top();
+        indexes[current_level - 1].pop();
+        
+        rotate_twice_indexes[index] = acc;
+        acc *= 2;
+
+        if(d == 0){
+            current_level -= it;
+            ++it;
+
+            d = levels - current_level + 1;
+
+        } else {
+            ++current_level;
+        }
+
+        --d;
+        --tested;
+    }
+}
+
 void solve(int hole){
     std::cout << "Generate solutions for a triangular solitaire with " << levels << " levels" << std::endl;
     std::cout << "With hole at position " << hole << std::endl;
 
+    std::vector<unsigned int> rotate_twice_indexes(((levels + 1) * levels) / 2 + 1);
+    generate_rotate_twice_indexes(rotate_twice_indexes);
+
     std::vector<unsigned int> puzzle(((levels + 1) * levels) / 2 + 1, true);
-
-
+    
     std::vector<std::vector<Move>> intos(((levels + 1) * levels) / 2 + 1);
     {
         int index = 1;
@@ -209,9 +265,6 @@ void solve(int hole){
     }
 
     puzzle[hole] = false;
-    
-    //std::cout << "score = " << score(puzzle) << std::endl;
-    //std::cout << "symetric = " << symetric_score(puzzle) << std::endl;
 
     std::vector<Move> solution;
 
@@ -257,7 +310,29 @@ void solve(int hole){
 
                             continue;   
                         }
+                        
+                        firstScore = symetric_score(puzzle);
+                        if(history.find(firstScore) != history.end()){
+                            solutions += history[firstScore];
+                            
+                            puzzle[move.from] = true;
+                            puzzle[move.by] = true;
+                            puzzle[i] = false;
 
+                            continue;   
+                        }
+                        
+                        firstScore = score(puzzle, rotate_twice_indexes);
+                        if(history.find(firstScore) != history.end()){
+                            solutions += history[firstScore];
+                            
+                            puzzle[move.from] = true;
+                            puzzle[move.by] = true;
+                            puzzle[i] = false;
+
+                            continue;   
+                        }
+            
                         //If the subtree has not already been computed, we compute it
                         sol.push(solutions);
                         solutions = 0;
@@ -287,6 +362,7 @@ void solve(int hole){
         if(!solution.empty()){
             history[score(puzzle)] = solutions;
             history[symetric_score(puzzle)] = solutions;
+            history[score(puzzle, rotate_twice_indexes)] = solutions;
             
             //We undo the last move
             lastMove = solution.back();
