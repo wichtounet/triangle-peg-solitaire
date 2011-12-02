@@ -10,7 +10,7 @@
 void solve(int hole);
 void display(const std::vector<unsigned int>& puzzle);
 
-int levels;
+unsigned int levels;
 
 int main(int argc, const char* argv[]) {
     if(argc < 3){
@@ -41,72 +41,72 @@ int map(int index, int levels){
     assert(false);
 }
 
-inline int level(int index){
+inline unsigned int level(unsigned int index){
    return (index - 1) / levels + 1; 
 }
 
-inline int moveRight(int index){
+inline int moveRight(unsigned int index){
     return index + 2;
 }
 
-inline int moveLeft(int index){
+inline int moveLeft(unsigned int index){
     return index - 2;
 }
 
-inline int moveDownLeft(int index){
+inline int moveDownLeft(unsigned int index){
     return index + (levels * 2);
 }
 
-inline int moveDownRight(int index){
+inline int moveDownRight(unsigned int index){
     return index + (levels * 2 + 2);
 }
 
-inline int moveUpRight(int index){
+inline int moveUpRight(unsigned int index){
     return index - (levels * 2);
 }
 
-inline int moveUpLeft(int index){
+inline int moveUpLeft(unsigned int index){
     return index - (levels * 2 + 2);
 }
 
-inline bool valid(int index){
-    int l = level(index);
+inline bool valid(unsigned int index){
+    unsigned int l = level(index);
 
     return l <= levels && index >= 1 && index <= (levels * l) - (levels - l);
 }
 
-inline bool canMoveLeft(int index){
-    int l = level(index);
+inline bool canMoveLeft(unsigned int index){
+    unsigned int l = level(index);
 
     return level(moveLeft(index)) == l && valid(moveLeft(index));
 }
 
-inline bool canMoveRight(int index){
-    int l = level(index);
+inline bool canMoveRight(unsigned int index){
+    unsigned int l = level(index);
 
     return level(moveRight(index)) == l && valid(moveRight(index));
 }
 
-inline bool canMoveUpRight(int index){
-    int l = level(index);
+inline bool canMoveUpRight(unsigned int index){
+    unsigned int l = level(index);
 
     return level(moveUpRight(index)) == l - 2 && valid(moveUpRight(index));
 }
 
-inline bool canMoveUpLeft(int index){
-    int l = level(index);
+inline bool canMoveUpLeft(unsigned int index){
+    unsigned int l = level(index);
 
     return level(moveUpLeft(index)) == l - 2 && valid(moveUpLeft(index));
 }
 
-inline bool canMoveDownRight(int index){
-    int l = level(index);
+inline bool canMoveDownRight(unsigned int index){
+    unsigned int l = level(index);
 
     return level(moveDownRight(index)) == l + 2 && valid(moveDownRight(index));
 }
 
-inline bool canMoveDownLeft(int index){
-    int l = level(index);
+inline bool canMoveDownLeft(unsigned int index){
+    unsigned int l = level(index);
 
     return level(moveDownLeft(index)) == l + 2 && valid(moveDownLeft(index));
 }
@@ -120,8 +120,20 @@ inline unsigned int score(const std::vector<unsigned int>& puzzle){
        acc *= 2; 
     }
 
-    //display(puzzle);
-    //std::cout << "score " << score  << std::endl;
+    return score;
+}
+
+inline unsigned int symetric_score(const std::vector<unsigned int>& puzzle){
+    unsigned int score = 0;
+    unsigned int acc = 1;
+
+    for(unsigned int level = 1; level <= levels; ++level){
+        int start = (level * (level + 1)) / 2;
+        for(unsigned int index = start; index > start - level; --index){
+            score += acc * puzzle[index];
+            acc *= 2; 
+        }
+    }
 
     return score;
 }
@@ -137,7 +149,7 @@ inline bool win(const std::vector<unsigned int>& puzzle/*, const std::vector<uns
 }
 
 struct Move {
-    unsigned int i;//hole = cases[i]
+    unsigned int i;//hole
     unsigned int j;//intos[hole][j]
     unsigned int from;
     unsigned int by;
@@ -149,15 +161,16 @@ void solve(int hole){
 
     std::vector<unsigned int> puzzle(((levels + 1) * levels) / 2 + 1, true);
 
+
     std::vector<std::vector<Move>> intos(((levels + 1) * levels) / 2 + 1);
     {
         int index = 1;
 
-        for(int level = 1; level <= levels; ++level){
+        for(unsigned int level = 1; level <= levels; ++level){
             int start = (level - 1) * levels + 1;
 
-            for(int col = 0; col < level; ++col){
-                int fake = start + col;
+            for(unsigned int col = 0; col < level; ++col){
+                unsigned int fake = start + col;
 
                 if(canMoveLeft(fake)){
                     intos[index - 2].push_back({-1, -1, index, index - 1});
@@ -196,6 +209,9 @@ void solve(int hole){
     }
 
     puzzle[hole] = false;
+    
+    //std::cout << "score = " << score(puzzle) << std::endl;
+    //std::cout << "symetric = " << symetric_score(puzzle) << std::endl;
 
     std::vector<Move> solution;
 
@@ -269,8 +285,8 @@ void solve(int hole){
        
         //There is no more moves 
         if(!solution.empty()){
-            int firstScore = score(puzzle);
-            history[firstScore] = solutions;
+            history[score(puzzle)] = solutions;
+            history[symetric_score(puzzle)] = solutions;
             
             //We undo the last move
             lastMove = solution.back();
@@ -281,10 +297,8 @@ void solve(int hole){
             puzzle[lastMove.i] = false;
             ++current;
 
-            unsigned int old = sol.top();
+            solutions += sol.top();
             sol.pop();
-
-            solutions += old;
 
             backtrace = true;
         } else {
@@ -298,8 +312,8 @@ void solve(int hole){
 
 void display(const std::vector<unsigned int>& puzzle){
     int index = 0;
-    for(int i = 1; i <= levels; ++i){
-        for(int j = 0; j < i; ++j){
+    for(unsigned int i = 1; i <= levels; ++i){
+        for(unsigned int j = 0; j < i; ++j){
             std::cout << puzzle[++index] << " ";
         }
 
