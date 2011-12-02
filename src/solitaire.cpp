@@ -138,7 +138,7 @@ inline unsigned int symetric_score(const std::vector<unsigned int>& puzzle){
     return score;
 }
 
-inline bool win(const std::vector<unsigned int>& puzzle/*, const std::vector<unsigned int>& cases*/){
+inline bool win(const std::vector<unsigned int>& puzzle){
     int sum = 0;
 
     for(unsigned int i = 1; i < puzzle.size(); ++i){
