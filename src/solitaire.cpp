@@ -9,7 +9,6 @@
 
 unsigned int levels;
 
-
 void solve(int hole);
 void display(const std::vector<unsigned int>& puzzle);
 
@@ -160,6 +159,57 @@ inline void generate_symetric_indexes(std::vector<unsigned int>& symetric_indexe
     }
 }
 
+inline void generate_rotate_once_indexes(std::vector<unsigned int>& rotate_once_indexes){
+    std::vector<std::vector<unsigned int>> indexes;
+
+    int index = 1;
+
+    for(unsigned int level = 1; level <= levels; ++level){
+        indexes.push_back(std::vector<unsigned int>());
+
+        for(unsigned int col = 0; col < level; ++col){
+            indexes[level - 1].push_back(index);
+
+            index++;
+        }
+       
+        std::reverse(indexes[level - 1].begin(), indexes[level - 1].end());
+    }
+
+    int tested = ((levels + 1) * levels) / 2;
+    int current_level = levels;
+    int it = 1;
+    int d = 1;
+
+    unsigned int acc = 1;
+    
+    //init the first level
+    --tested;
+    rotate_once_indexes[indexes[levels - 1].back()] = acc;
+    acc *= 2;
+    indexes[levels - 1].pop_back();
+        
+    while(tested > 0){
+        int index = indexes[current_level - 1].back();
+        indexes[current_level - 1].pop_back();
+
+        rotate_once_indexes[index] = acc;
+        acc *= 2;
+
+        if(d == 0){
+            current_level = levels;
+
+            d = it + 2;
+            ++it;
+        } else {
+            --current_level;
+        }
+
+        --d;
+        --tested;
+    }
+}
+
 inline void generate_rotate_twice_indexes(std::vector<unsigned int>& rotate_twice_indexes){
     std::vector<std::stack<unsigned int>> indexes;
 
@@ -222,6 +272,9 @@ void solve(int hole){
 
     std::vector<unsigned int> symetric_indexes(((levels + 1) * levels) / 2 + 1);
     generate_symetric_indexes(symetric_indexes);
+    
+    std::vector<unsigned int> rotate_once_indexes(((levels + 1) * levels) / 2 + 1);
+    generate_rotate_once_indexes(rotate_once_indexes);
     
     std::vector<unsigned int> rotate_twice_indexes(((levels + 1) * levels) / 2 + 1);
     generate_rotate_twice_indexes(rotate_twice_indexes);
@@ -314,6 +367,7 @@ void solve(int hole){
                         //The subtree has already been calculated
                         PRUNE(normal_indexes)
                         PRUNE(symetric_indexes)
+                        PRUNE(rotate_once_indexes)
                         PRUNE(rotate_twice_indexes)
             
                         //If the subtree has not already been computed, we compute it
@@ -345,6 +399,7 @@ void solve(int hole){
         if(!solution.empty()){
             history[score(puzzle, normal_indexes)] = solutions;
             history[score(puzzle, symetric_indexes)] = solutions;
+            history[score(puzzle, rotate_once_indexes)] = solutions;
             history[score(puzzle, rotate_twice_indexes)] = solutions;
             
             //We undo the last move
