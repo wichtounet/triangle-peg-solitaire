@@ -112,33 +112,6 @@ inline bool canMoveDownLeft(unsigned int index){
     return level(moveDownLeft(index)) == l + 2 && valid(moveDownLeft(index));
 }
 
-inline unsigned int score(const std::vector<unsigned int>& puzzle){
-    unsigned int score = 0;
-    unsigned int acc = 1;
-
-    for(unsigned int i = 1; i < puzzle.size(); ++i){
-       score += acc * puzzle[i];
-       acc *= 2; 
-    }
-
-    return score;
-}
-
-inline unsigned int symetric_score(const std::vector<unsigned int>& puzzle){
-    unsigned int score = 0;
-    unsigned int acc = 1;
-
-    for(unsigned int level = 1; level <= levels; ++level){
-        int start = (level * (level + 1)) / 2;
-        for(unsigned int index = start; index > start - level; --index){
-            score += acc * puzzle[index];
-            acc *= 2; 
-        }
-    }
-
-    return score;
-}
-
 inline unsigned int score(const std::vector<unsigned int>& puzzle, const std::vector<unsigned int>& indexes){
     unsigned int score = 0;
 
