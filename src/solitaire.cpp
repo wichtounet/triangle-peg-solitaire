@@ -111,6 +111,21 @@ inline bool canMoveDownLeft(int index){
     return level(moveDownLeft(index)) == l + 2 && valid(moveDownLeft(index));
 }
 
+inline unsigned int score(const std::vector<unsigned int>& puzzle){
+    unsigned int score = 0;
+    unsigned int acc = 1;
+
+    for(unsigned int i = 1; i < puzzle.size(); ++i){
+       score += acc * puzzle[i];
+       acc *= 2; 
+    }
+
+    //display(puzzle);
+    //std::cout << "score " << score  << std::endl;
+
+    return score;
+}
+
 inline bool win(const std::vector<unsigned int>& puzzle/*, const std::vector<unsigned int>& cases*/){
     int sum = 0;
 
@@ -183,8 +198,6 @@ void solve(int hole){
     puzzle[hole] = false;
 
     std::vector<Move> solution;
-    
-    unsigned long solutions = 0;
 
     bool backtrace = false;
     bool restart = false;
@@ -192,6 +205,10 @@ void solve(int hole){
     Move lastMove;
 
     int current = ((levels + 1) * levels) / 2 - 1;
+
+    unsigned long solutions = 0;
+    std::stack<unsigned int> sol;
+    std::unordered_map<int, int> history;
 
     while(true){
         for(unsigned int i = 1; i < puzzle.size(); ++i){
@@ -202,17 +219,34 @@ void solve(int hole){
                 j = lastMove.j + 1;
                 backtrace = false;
             }
-
+            
             if(!puzzle[i]){
                 for(; j < intos[i].size(); ++j){
                     Move& move = intos[i][j];
 
+                    //A potential move is found
                     if(puzzle[move.from] && puzzle[move.by]){
                         puzzle[move.from] = false;
                         puzzle[move.by] = false;
                         puzzle[i] = true;
-                        --current;
 
+                        //The subtree has already been calculated
+                        int firstScore = score(puzzle);
+                        if(history.find(firstScore) != history.end()){
+                            solutions += history[firstScore];
+                            
+                            puzzle[move.from] = true;
+                            puzzle[move.by] = true;
+                            puzzle[i] = false;
+
+                            continue;   
+                        }
+
+                        //If the subtree has not already been computed, we compute it
+                        sol.push(solutions);
+                        solutions = 0;
+
+                        --current;
                         solution.push_back(move);
 
                         restart = true;
@@ -232,25 +266,34 @@ void solve(int hole){
         }
         
         solutions += current == 1;
-        
+       
+        //There is no more moves 
         if(!solution.empty()){
+            int firstScore = score(puzzle);
+            history[firstScore] = solutions;
+            
             //We undo the last move
             lastMove = solution.back();
             solution.pop_back();
-
+            
             puzzle[lastMove.from] = true;
             puzzle[lastMove.by] = true;
             puzzle[lastMove.i] = false;
             ++current;
-            
+
+            unsigned int old = sol.top();
+            sol.pop();
+
+            solutions += old;
+
             backtrace = true;
         } else {
             //We searched everything
             break;
         }
     }
-   
-    std::cout << "Found " << solutions/*.size()*/ << " solutions" << std::endl;
+
+    std::cout << "Found " << solutions << " solutions" << std::endl;
 }
 
 void display(const std::vector<unsigned int>& puzzle){
