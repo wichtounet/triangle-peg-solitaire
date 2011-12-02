@@ -166,6 +166,27 @@ struct Move {
     unsigned int by;
 };
 
+inline void generate_normal_indexes(std::vector<unsigned int>& normal_indexes){
+    unsigned int acc = 1;
+
+    for(unsigned int i = 1; i < normal_indexes.size(); ++i){
+        normal_indexes[i] = acc;
+        acc *= 2; 
+    }
+}
+
+inline void generate_symetric_indexes(std::vector<unsigned int>& symetric_indexes){
+    unsigned int acc = 1;
+
+    for(unsigned int level = 1; level <= levels; ++level){
+        int start = (level * (level + 1)) / 2;
+        for(unsigned int index = start; index > start - level; --index){
+            symetric_indexes[index] = acc;
+            acc *= 2; 
+        }
+    }
+}
+
 inline void generate_rotate_twice_indexes(std::vector<unsigned int>& rotate_twice_indexes){
     std::vector<std::stack<unsigned int>> indexes;
 
@@ -176,21 +197,21 @@ inline void generate_rotate_twice_indexes(std::vector<unsigned int>& rotate_twic
 
         for(unsigned int col = 0; col < level; ++col){
             indexes[level - 1].push(index);
-    
+
             index++;
         }
     }
-    
+
     int tested = ((levels + 1) * levels) / 2;
     int current_level = levels;
     int it = 1;
     int d = 0;
-    
+
     unsigned int acc = 1;
     while(tested > 0){
         int index = indexes[current_level - 1].top();
         indexes[current_level - 1].pop();
-        
+
         rotate_twice_indexes[index] = acc;
         acc *= 2;
 
@@ -209,10 +230,26 @@ inline void generate_rotate_twice_indexes(std::vector<unsigned int>& rotate_twic
     }
 }
 
+#define PRUNE(indexes)\
+firstScore = score(puzzle, indexes);\
+if(history.find(firstScore) != history.end()){\
+    solutions += history[firstScore];\
+    puzzle[move.from] = true;\
+    puzzle[move.by] = true;\
+    puzzle[i] = false;\
+    continue;\
+}
+
 void solve(int hole){
     std::cout << "Generate solutions for a triangular solitaire with " << levels << " levels" << std::endl;
     std::cout << "With hole at position " << hole << std::endl;
 
+    std::vector<unsigned int> normal_indexes(((levels + 1) * levels) / 2 + 1);
+    generate_normal_indexes(normal_indexes);
+
+    std::vector<unsigned int> symetric_indexes(((levels + 1) * levels) / 2 + 1);
+    generate_symetric_indexes(symetric_indexes);
+    
     std::vector<unsigned int> rotate_twice_indexes(((levels + 1) * levels) / 2 + 1);
     generate_rotate_twice_indexes(rotate_twice_indexes);
 
@@ -299,39 +336,12 @@ void solve(int hole){
                         puzzle[move.by] = false;
                         puzzle[i] = true;
 
+                        int firstScore;
+
                         //The subtree has already been calculated
-                        int firstScore = score(puzzle);
-                        if(history.find(firstScore) != history.end()){
-                            solutions += history[firstScore];
-                            
-                            puzzle[move.from] = true;
-                            puzzle[move.by] = true;
-                            puzzle[i] = false;
-
-                            continue;   
-                        }
-                        
-                        firstScore = symetric_score(puzzle);
-                        if(history.find(firstScore) != history.end()){
-                            solutions += history[firstScore];
-                            
-                            puzzle[move.from] = true;
-                            puzzle[move.by] = true;
-                            puzzle[i] = false;
-
-                            continue;   
-                        }
-                        
-                        firstScore = score(puzzle, rotate_twice_indexes);
-                        if(history.find(firstScore) != history.end()){
-                            solutions += history[firstScore];
-                            
-                            puzzle[move.from] = true;
-                            puzzle[move.by] = true;
-                            puzzle[i] = false;
-
-                            continue;   
-                        }
+                        PRUNE(normal_indexes)
+                        PRUNE(symetric_indexes)
+                        PRUNE(rotate_twice_indexes)
             
                         //If the subtree has not already been computed, we compute it
                         sol.push(solutions);
@@ -360,8 +370,8 @@ void solve(int hole){
        
         //There is no more moves 
         if(!solution.empty()){
-            history[score(puzzle)] = solutions;
-            history[symetric_score(puzzle)] = solutions;
+            history[score(puzzle, normal_indexes)] = solutions;
+            history[score(puzzle, symetric_indexes)] = solutions;
             history[score(puzzle, rotate_twice_indexes)] = solutions;
             
             //We undo the last move
