@@ -329,6 +329,10 @@ void solve(int hole){
 
     puzzle[hole] = false;
 
+    unsigned long solutions = 0;
+    std::unordered_map<int, int> history;
+
+
     std::vector<Move> solution;
 
     bool backtrace = false;
@@ -338,9 +342,7 @@ void solve(int hole){
 
     int current = ((levels + 1) * levels) / 2 - 1;
 
-    unsigned long solutions = 0;
     std::stack<unsigned int> sol;
-    std::unordered_map<int, int> history;
 
     while(true){
         for(unsigned int i = 1; i < puzzle.size(); ++i){
@@ -351,7 +353,8 @@ void solve(int hole){
                 j = lastMove.j + 1;
                 backtrace = false;
             }
-            
+    
+            //It's an hole : try to fill it        
             if(!puzzle[i]){
                 for(; j < intos[i].size(); ++j){
                     Move& move = intos[i][j];
@@ -401,6 +404,37 @@ void solve(int hole){
             history[score(puzzle, symetric_indexes)] = solutions;
             history[score(puzzle, rotate_once_indexes)] = solutions;
             history[score(puzzle, rotate_twice_indexes)] = solutions;
+            
+            /*#pragma omp parallel num_threads(4) shared(history)
+            {
+                #pragma omp sections
+                {
+                    #pragma omp section
+                    {
+                        int c = score(puzzle, normal_indexes);
+                        #pragma omp critical
+                        history[c] = solutions;
+                    }
+                    #pragma omp section
+                    {
+                        int c = score(puzzle, symetric_indexes);
+                        #pragma omp critical
+                        history[c] = solutions;
+                    }
+                    #pragma omp section
+                    {
+                        int c = score(puzzle, rotate_once_indexes);
+                        #pragma omp critical
+                        history[c] = solutions;
+                    }
+                    #pragma omp section
+                    {
+                        int c = score(puzzle, rotate_twice_indexes);
+                        #pragma omp critical
+                        history[c] = solutions;
+                    }
+                }
+            }*/
             
             //We undo the last move
             lastMove = solution.back();
