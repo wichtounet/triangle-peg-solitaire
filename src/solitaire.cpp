@@ -154,7 +154,6 @@ const int THREADS = 4;
 const int SOLUTIONS = 4;
 const int STARTING = THREADS * SOLUTIONS;
 
-unsigned long startingSolutions[STARTING];
 StartingPosition startingPositions[STARTING];
 
 inline void generate_normal_indexes(std::vector<unsigned int>& normal_indexes){
@@ -351,7 +350,7 @@ void precalculate(){
 
 std::unordered_map<unsigned int, unsigned long> history;
 
-void solve2(int hole){
+void solveFromHistory(int hole){
     std::vector<unsigned int> puzzle(((levels + 1) * levels) / 2 + 1, true);
     puzzle[hole] = false;
 
@@ -492,8 +491,7 @@ void solve2(int hole){
     std::cout << "Found " << solutions << " solutions" << std::endl;
 }
 
-
-unsigned long computeSolutions(StartingPosition& position){
+void computeSolutions(StartingPosition& position){
     std::vector<unsigned int> puzzle = position.puzzle;
     
     Move& firstMove = position.move;
@@ -590,8 +588,6 @@ unsigned long computeSolutions(StartingPosition& position){
     }
 
     std::cout << "Found " << solutions << " solutions" << std::endl;
-
-    return solutions;
 }
 
 void generateStartingPositions(int hole){
@@ -694,23 +690,14 @@ void solveMP(int hole){
 
         if(position.puzzle.empty()){
             //Nothing to do
-            startingSolutions[i] = 0;
         } else {
-            startingSolutions[i] = computeSolutions(position);
+            computeSolutions(position);
         }
     }
     
     // <-- barrier
      
-     unsigned long solutions = 0;
-     for(int i = 0; i < STARTING; ++i){
-        solutions += startingSolutions[i];
-     }
-
-    std::cout << "Found " << solutions << " solutions" << std::endl;
-
-    solve2(hole);
-    
+    solveFromHistory(hole);
 }
 
 void display(const std::vector<unsigned int>& puzzle){
