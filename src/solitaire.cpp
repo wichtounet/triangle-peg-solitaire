@@ -9,7 +9,10 @@
 
 unsigned int levels;
 
+void precalculate();
+
 void solve(int hole);
+void solveMP(int hole);
 void display(const std::vector<unsigned int>& puzzle);
 
 int main(int argc, const char* argv[]) {
@@ -19,7 +22,11 @@ int main(int argc, const char* argv[]) {
         levels = strtol(argv[1], 0, 10); 
         int hole = strtol(argv[2], 0, 10); 
 
-        solve(hole);
+        //Precalculattions needed by both versions
+        precalculate();
+
+        //solve(hole);
+        solveMP(hole);
     }
 }
 
@@ -141,14 +148,14 @@ struct Move {
 struct StartingPosition {
     std::vector<unsigned int> puzzle;
     Move move;
-    unsigned int position;
+    std::vector<Move> solution;
 };
 
-#define THREADS 4
-#define SOLUTIONS 4
-#define STARTING THREADS * SOLUTIONS
+const int THREADS = 4;
+const int SOLUTIONS = 4;
+const int STARTING = THREADS * SOLUTIONS;
 
-unsigned int startingSolutions[STARTING];
+unsigned long startingSolutions[STARTING];
 StartingPosition startingPositions[STARTING];
 
 inline void generate_normal_indexes(std::vector<unsigned int>& normal_indexes){
@@ -281,10 +288,9 @@ std::vector<unsigned int> symetric_indexes;
 std::vector<unsigned int> rotate_once_indexes;
 std::vector<unsigned int> rotate_twice_indexes;
 
-void solve(int hole){
-    std::cout << "Generate solutions for a triangular solitaire with " << levels << " levels" << std::endl;
-    std::cout << "With hole at position " << hole << std::endl;
+std::vector<std::vector<Move>> intos;
 
+void precalculate(){
     normal_indexes.assign(((levels + 1) * levels) / 2 + 1, 0);
     generate_normal_indexes(normal_indexes);
 
@@ -296,10 +302,8 @@ void solve(int hole){
     
     rotate_twice_indexes.assign(((levels + 1) * levels) / 2 + 1, 0);
     generate_rotate_twice_indexes(rotate_twice_indexes);
-
-    std::vector<unsigned int> puzzle(((levels + 1) * levels) / 2 + 1, true);
     
-    std::vector<std::vector<Move>> intos(((levels + 1) * levels) / 2 + 1);
+    intos.assign(((levels + 1) * levels) / 2 + 1, std::vector<Move>());
     {
         int index = 1;
 
@@ -344,11 +348,17 @@ void solve(int hole){
             intos[i][j].j = j;
         }
     }
+}
 
+void solve(int hole){
+    std::cout << "Generate solutions for a triangular solitaire with " << levels << " levels" << std::endl;
+    std::cout << "With hole at position " << hole << std::endl;
+
+    std::vector<unsigned int> puzzle(((levels + 1) * levels) / 2 + 1, true);
     puzzle[hole] = false;
 
     unsigned long solutions = 0;
-    std::unordered_map<int, int> history;
+    std::unordered_map<unsigned int, unsigned long> history;
     std::vector<Move> solution;
 
     bool backtrace = false;
@@ -358,7 +368,7 @@ void solve(int hole){
 
     int current = ((levels + 1) * levels) / 2 - 1;
 
-    std::stack<unsigned int> sol;
+    std::stack<unsigned long> sol;
 
     while(true){
         for(unsigned int i = 1; i < puzzle.size(); ++i){
@@ -441,25 +451,412 @@ void solve(int hole){
     }
 
     std::cout << "Found " << solutions << " solutions" << std::endl;
+    
+    solutions = 0;
+    solution.clear();
+
+    backtrace = false;
+    restart = false;
+
+    current = ((levels + 1) * levels) / 2 - 1;
+
+    while(!sol.empty()){
+        sol.pop();
+    }
+
+    for(unsigned int i = 1; i < puzzle.size(); ++i){
+        unsigned int j = 0;
+
+        //It's an hole : try to fill it        
+        if(!puzzle[i]){
+            for(; j < intos[i].size(); ++j){
+                Move& move = intos[i][j];
+
+                //A potential move is found
+                if(puzzle[move.from] && puzzle[move.by]){
+                    puzzle[move.from] = false;
+                    puzzle[move.by] = false;
+                    puzzle[i] = true;
+
+                    int firstScore;
+
+                    //The subtree has already been calculated
+                    PRUNE(normal_indexes)
+                    PRUNE(symetric_indexes)
+                    PRUNE(rotate_once_indexes)
+                    PRUNE(rotate_twice_indexes)
+
+                    assert(false);
+                }
+            }
+        }
+    }
+
+    std::cout << "Found " << solutions << " solutions" << std::endl;
 }
 
-void generateStartingPositions(){
-    //TODO
+std::unordered_map<unsigned int, unsigned long> history;
+
+void solve2(int hole){
+    std::vector<unsigned int> puzzle(((levels + 1) * levels) / 2 + 1, true);
+    puzzle[hole] = false;
+
+    unsigned long solutions = 0;
+    std::vector<Move> solution;
+
+    bool backtrace = false;
+    bool restart = false;
+
+    Move lastMove;
+
+    int current = ((levels + 1) * levels) / 2 - 1;
+
+    std::stack<unsigned long> sol;
+
+    while(true){
+        for(unsigned int i = 1; i < puzzle.size(); ++i){
+            unsigned int j = 0;
+
+            if(backtrace){
+                i = lastMove.i;
+                j = lastMove.j + 1;
+                backtrace = false;
+            }
+    
+            //It's an hole : try to fill it        
+            if(!puzzle[i]){
+                for(; j < intos[i].size(); ++j){
+                    Move& move = intos[i][j];
+
+                    //A potential move is found
+                    if(puzzle[move.from] && puzzle[move.by]){
+                        puzzle[move.from] = false;
+                        puzzle[move.by] = false;
+                        puzzle[i] = true;
+
+                        int firstScore;
+
+                        //The subtree has already been calculated
+                        PRUNE(normal_indexes)
+                        PRUNE(symetric_indexes)
+                        PRUNE(rotate_once_indexes)
+                        PRUNE(rotate_twice_indexes)
+            
+                        //If the subtree has not already been computed, we compute it
+                        sol.push(solutions);
+                        solutions = 0;
+
+                        --current;
+                        solution.push_back(move);
+
+                        restart = true;
+                        break;
+                    }
+                }
+
+                if(restart){
+                    break;
+                }
+            }
+        }
+
+        if(restart){
+            restart = false;
+            continue;
+        }
+        
+        solutions += current == 1;
+       
+        //There is no more moves 
+        if(!solution.empty()){
+            history[score(puzzle, normal_indexes)] = solutions;
+            history[score(puzzle, symetric_indexes)] = solutions;
+            history[score(puzzle, rotate_once_indexes)] = solutions;
+            history[score(puzzle, rotate_twice_indexes)] = solutions;
+            
+            //We undo the last move
+            lastMove = solution.back();
+            solution.pop_back();
+            
+            puzzle[lastMove.from] = true;
+            puzzle[lastMove.by] = true;
+            puzzle[lastMove.i] = false;
+            ++current;
+
+            solutions += sol.top();
+            sol.pop();
+
+            backtrace = true;
+        } else {
+            //We searched everything
+            break;
+        }
+    }
+
+    std::cout << "Found " << solutions << " solutions" << std::endl;
+    
+    solutions = 0;
+    solution.clear();
+
+    backtrace = false;
+    restart = false;
+
+    current = ((levels + 1) * levels) / 2 - 1;
+
+    while(!sol.empty()){
+        sol.pop();
+    }
+
+    for(unsigned int i = 1; i < puzzle.size(); ++i){
+        unsigned int j = 0;
+
+        //It's an hole : try to fill it        
+        if(!puzzle[i]){
+            for(; j < intos[i].size(); ++j){
+                Move& move = intos[i][j];
+
+                //A potential move is found
+                if(puzzle[move.from] && puzzle[move.by]){
+                    puzzle[move.from] = false;
+                    puzzle[move.by] = false;
+                    puzzle[i] = true;
+
+                    int firstScore;
+
+                    //The subtree has already been calculated
+                    PRUNE(normal_indexes)
+                    PRUNE(symetric_indexes)
+                    PRUNE(rotate_once_indexes)
+                    PRUNE(rotate_twice_indexes)
+
+                    assert(false);
+                }
+            }
+        }
+    }
+
+    std::cout << "Found " << solutions << " solutions" << std::endl;
 }
 
-void solveMP(){
-    //Precalculations
 
-    generateStartingPositions();
+unsigned long computeSolutions(StartingPosition& position){
+    std::vector<unsigned int> puzzle = position.puzzle;
+    
+    Move& firstMove = position.move;
+    puzzle[firstMove.from] = false;
+    puzzle[firstMove.by] = false;
+    puzzle[firstMove.i] = true;
+
+    unsigned long solutions = 0;
+    std::vector<Move> solution;// = position.solution;
+
+    bool backtrace = false;
+    bool restart = false;
+
+    Move lastMove;
+
+    std::stack<unsigned long> sol;
+
+    while(true){
+        for(unsigned int i = 1; i < puzzle.size(); ++i){
+            unsigned int j = 0;
+
+            if(backtrace){
+                i = lastMove.i;
+                j = lastMove.j + 1;
+                backtrace = false;
+            }
+    
+            //It's an hole : try to fill it        
+            if(!puzzle[i]){
+                for(; j < intos[i].size(); ++j){
+                    Move& move = intos[i][j];
+
+                    //A potential move is found
+                    if(puzzle[move.from] && puzzle[move.by]){
+                        puzzle[move.from] = false;
+                        puzzle[move.by] = false;
+                        puzzle[i] = true;
+
+                        int firstScore;
+
+                        //The subtree has already been calculated
+                        PRUNE(normal_indexes)
+                        PRUNE(symetric_indexes)
+                        PRUNE(rotate_once_indexes)
+                        PRUNE(rotate_twice_indexes)
+            
+                        //If the subtree has not already been computed, we compute it
+                        sol.push(solutions);
+                        solutions = 0;
+                       
+                        solution.push_back(move);
+
+                        restart = true;
+                        break;
+                    }
+                }
+
+                if(restart){
+                    break;
+                }
+            }
+        }
+
+        if(restart){
+            restart = false;
+            continue;
+        }
+        
+        solutions += win(puzzle);
+       
+        //There is no more moves 
+        if(!solution.empty()){
+            history[score(puzzle, normal_indexes)] = solutions;
+            history[score(puzzle, symetric_indexes)] = solutions;
+            history[score(puzzle, rotate_once_indexes)] = solutions;
+            history[score(puzzle, rotate_twice_indexes)] = solutions;
+            
+            //We undo the last move
+            lastMove = solution.back();
+            solution.pop_back();
+            
+            puzzle[lastMove.from] = true;
+            puzzle[lastMove.by] = true;
+            puzzle[lastMove.i] = false;
+
+            solutions += sol.top();
+            sol.pop();
+
+            backtrace = true;
+        } else {
+            //We searched everything
+            break;
+        }
+    }
+
+    std::cout << "Found " << solutions << " solutions" << std::endl;
+
+    return solutions;
+}
+
+void generateStartingPositions(int hole){
+    std::vector<unsigned int> puzzle(((levels + 1) * levels) / 2 + 1, true);
+    puzzle[hole] = false;
+    
+    int current = 0;
+    
+    //Generate starting positions for the starting hole    
+    for(unsigned int j = 0; j < intos[hole].size(); ++j){
+        Move& move = intos[hole][j];
+
+        //A potential move is found
+        if(puzzle[move.from] && puzzle[move.by]){
+            startingPositions[current] = {puzzle, move, {move}};
+            ++current;
+        }
+    }
+    
+    std::cout << "With first hole, current " << current << std::endl;
+
+    //Then we explode the starting positions
+
+    while(true){
+        unsigned int end = current;
+        for(unsigned int i = 0; i < end; ++i){
+            StartingPosition& position = startingPositions[i];
+            std::vector<unsigned int> tempPuzzle = position.puzzle;
+            
+            tempPuzzle[position.move.from] = false;
+            tempPuzzle[position.move.by] = false;
+            tempPuzzle[position.move.i] = true;
+
+            int count = 0;
+
+            for(unsigned int h = 1; h < tempPuzzle.size(); ++h){
+                if(!tempPuzzle[h]){
+                    for(unsigned int j = 0; j < intos[h].size(); ++j){
+                        Move& move = intos[h][j];
+
+                        //A potential move is found
+                        if(tempPuzzle[move.from] && tempPuzzle[move.by]){
+                            ++count;
+                        }
+                    }
+                }
+            }
+            
+            //If we have enough places to handle this explosion
+            if(current + count - 1 < STARTING){
+                std::vector<Move> solution = position.solution;
+                bool first = true;
+                for(unsigned int h = 1; h < tempPuzzle.size(); ++h){
+                    if(!tempPuzzle[h]){
+                        for(unsigned int j = 0; j < intos[h].size(); ++j){
+                            Move& move = intos[h][j];
+
+                            //A potential move is found
+                            if(puzzle[move.from] && puzzle[move.by]){
+                                solution.push_back(move);
+                                if(first){
+                                    startingPositions[i] = {tempPuzzle, move, solution};
+                                    first = false;
+                                } else {
+                                    startingPositions[current] = {tempPuzzle, move, solution};
+                                    ++current;
+                                }
+                                solution.pop_back();
+                            }
+                        }
+                    }
+                }
+            } 
+        }
+
+        //If there are less than 2 solutions to generate
+        if(current >= STARTING - 2){
+            break;
+        }
+    }
+    
+    std::cout << "current " << current << std::endl;
+
+    for(; current < STARTING; ++current){
+        startingPositions[current] = {std::vector<unsigned int>(0), Move(), std::vector<Move>(0)};
+    }
+}
+
+void solveMP(int hole){
+    std::cout << "Generate solutions for a triangular solitaire with " << levels << " levels" << std::endl;
+    std::cout << "With hole at position " << hole << std::endl;
+    std::cout << "With " << THREADS << " threads" << std::endl;
+    
+    generateStartingPositions(hole);
+  
+    // <-- parallel start
+   
+    for(int i = 0; i < STARTING; ++i){
+        StartingPosition& position = startingPositions[i];
+
+        if(position.puzzle.empty()){
+            //Nothing to do
+            startingSolutions[i] = 0;
+        } else {
+            startingSolutions[i] = computeSolutions(position);
+        }
+    }
     
     // <-- barrier
      
-     int solutions = 0;
+     unsigned long solutions = 0;
      for(int i = 0; i < STARTING; ++i){
         solutions += startingSolutions[i];
      }
 
     std::cout << "Found " << solutions << " solutions" << std::endl;
+
+    solve2(hole);
+    
 }
 
 void display(const std::vector<unsigned int>& puzzle){
