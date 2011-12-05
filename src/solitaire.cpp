@@ -138,6 +138,19 @@ struct Move {
     unsigned int by;
 };
 
+struct StartingPosition {
+    std::vector<unsigned int> puzzle;
+    Move move;
+    unsigned int position;
+};
+
+#define THREADS 4
+#define SOLUTIONS 4
+#define STARTING THREADS * SOLUTIONS
+
+unsigned int startingSolutions[STARTING];
+StartingPosition startingPositions[STARTING];
+
 inline void generate_normal_indexes(std::vector<unsigned int>& normal_indexes){
     unsigned int acc = 1;
 
@@ -331,8 +344,6 @@ void solve(int hole){
 
     unsigned long solutions = 0;
     std::unordered_map<int, int> history;
-
-
     std::vector<Move> solution;
 
     bool backtrace = false;
@@ -405,37 +416,6 @@ void solve(int hole){
             history[score(puzzle, rotate_once_indexes)] = solutions;
             history[score(puzzle, rotate_twice_indexes)] = solutions;
             
-            /*#pragma omp parallel num_threads(4) shared(history)
-            {
-                #pragma omp sections
-                {
-                    #pragma omp section
-                    {
-                        int c = score(puzzle, normal_indexes);
-                        #pragma omp critical
-                        history[c] = solutions;
-                    }
-                    #pragma omp section
-                    {
-                        int c = score(puzzle, symetric_indexes);
-                        #pragma omp critical
-                        history[c] = solutions;
-                    }
-                    #pragma omp section
-                    {
-                        int c = score(puzzle, rotate_once_indexes);
-                        #pragma omp critical
-                        history[c] = solutions;
-                    }
-                    #pragma omp section
-                    {
-                        int c = score(puzzle, rotate_twice_indexes);
-                        #pragma omp critical
-                        history[c] = solutions;
-                    }
-                }
-            }*/
-            
             //We undo the last move
             lastMove = solution.back();
             solution.pop_back();
@@ -454,6 +434,25 @@ void solve(int hole){
             break;
         }
     }
+
+    std::cout << "Found " << solutions << " solutions" << std::endl;
+}
+
+void generateStartingPositions(){
+    //TODO
+}
+
+void solveMP(){
+    //Precalculations
+
+    generateStartingPositions();
+    
+    // <-- barrier
+     
+     int solutions = 0;
+     for(int i = 0; i < STARTING; ++i){
+        solutions += startingSolutions[i];
+     }
 
     std::cout << "Found " << solutions << " solutions" << std::endl;
 }
