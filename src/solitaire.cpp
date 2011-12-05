@@ -276,20 +276,25 @@ if(history.find(firstScore) != history.end()){\
     continue;\
 }
 
+std::vector<unsigned int> normal_indexes;
+std::vector<unsigned int> symetric_indexes;
+std::vector<unsigned int> rotate_once_indexes;
+std::vector<unsigned int> rotate_twice_indexes;
+
 void solve(int hole){
     std::cout << "Generate solutions for a triangular solitaire with " << levels << " levels" << std::endl;
     std::cout << "With hole at position " << hole << std::endl;
 
-    std::vector<unsigned int> normal_indexes(((levels + 1) * levels) / 2 + 1);
+    normal_indexes.assign(((levels + 1) * levels) / 2 + 1, 0);
     generate_normal_indexes(normal_indexes);
 
-    std::vector<unsigned int> symetric_indexes(((levels + 1) * levels) / 2 + 1);
+    symetric_indexes.assign(((levels + 1) * levels) / 2 + 1, 0);
     generate_symetric_indexes(symetric_indexes);
     
-    std::vector<unsigned int> rotate_once_indexes(((levels + 1) * levels) / 2 + 1);
+    rotate_once_indexes.assign(((levels + 1) * levels) / 2 + 1, 0);
     generate_rotate_once_indexes(rotate_once_indexes);
     
-    std::vector<unsigned int> rotate_twice_indexes(((levels + 1) * levels) / 2 + 1);
+    rotate_twice_indexes.assign(((levels + 1) * levels) / 2 + 1, 0);
     generate_rotate_twice_indexes(rotate_twice_indexes);
 
     std::vector<unsigned int> puzzle(((levels + 1) * levels) / 2 + 1, true);
