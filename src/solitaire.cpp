@@ -701,11 +701,9 @@ void solveMP(int hole){
     
     generateStartingPositions(hole);
   
-    // <-- parallel start
-
     #pragma omp parallel num_threads(THREADS)
     {
-        #pragma omp for nowait schedule(dynamic, 1)
+        #pragma omp for nowait schedule(static, 1)
         for(int i = 0; i < STARTING; ++i){
             //printf("%i handled by %i \n", i, omp_get_thread_num());
             
@@ -719,10 +717,6 @@ void solveMP(int hole){
         printf("%i finished \n", omp_get_thread_num());
     }
    
-    std::cout << "History : " << history.size() << std::endl;  
-    
-    // <-- barrier
-    
     std::cout << "solve from history" << std::endl; 
     solveFromHistory(hole);
     std::cout << "solved from history" << std::endl; 
