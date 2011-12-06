@@ -583,12 +583,17 @@ void computeSolutions(StartingPosition& position){
        
         //There is no more moves 
         if(!solution.empty()){
+            int normal_score = score(puzzle, normal_indexes);
+            int symetric_score = score(puzzle, symetric_indexes);
+            int rotate_once_score = score(puzzle, rotate_once_indexes);
+            int rotate_twice_score = score(puzzle, rotate_twice_indexes);
+
             #pragma omp critical
             {
-                history[score(puzzle, normal_indexes)] = solutions;
-                history[score(puzzle, symetric_indexes)] = solutions;
-                history[score(puzzle, rotate_once_indexes)] = solutions;
-                history[score(puzzle, rotate_twice_indexes)] = solutions;
+                history[normal_score] = solutions;
+                history[symetric_score] = solutions;
+                history[rotate_once_score] = solutions;
+                history[rotate_twice_score] = solutions;
             }
 
             //We undo the last move
