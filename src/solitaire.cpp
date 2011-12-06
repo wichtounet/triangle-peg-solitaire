@@ -497,7 +497,7 @@ void computeSolutions(StartingPosition& position){
                             puzzle[i] = false;
                             continue;
                         }
-
+                        
                         int symetric_score = score(puzzle, symetric_indexes);
                         if(history.find(symetric_score) != history.end()){
                             solutions += history[symetric_score];
