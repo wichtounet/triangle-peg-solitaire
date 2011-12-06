@@ -490,14 +490,50 @@ void computeSolutions(StartingPosition& position){
                         puzzle[i] = true;
                         
                         int normal_score = score(puzzle, normal_indexes);
+                        if(history.find(normal_score) != history.end()){
+                            solutions += history[normal_score];
+                            puzzle[move.from] = true;
+                            puzzle[move.by] = true;
+                            puzzle[i] = false;
+                            continue;
+                        }
+
+                        int symetric_score = score(puzzle, symetric_indexes);
+                        if(history.find(symetric_score) != history.end()){
+                            solutions += history[symetric_score];
+                            puzzle[move.from] = true;
+                            puzzle[move.by] = true;
+                            puzzle[i] = false;
+                            continue;
+                        }
+                       
+                        int rotate_once_score = score(puzzle, rotate_once_indexes);
+                        if(history.find(rotate_once_score) != history.end()){
+                            solutions += history[rotate_once_score];
+                            puzzle[move.from] = true;
+                            puzzle[move.by] = true;
+                            puzzle[i] = false;
+                            continue;
+                        }
+                       
+                        int rotate_twice_score = score(puzzle, rotate_twice_indexes);
+                        if(history.find(rotate_twice_score) != history.end()){
+                            solutions += history[rotate_twice_score];
+                            puzzle[move.from] = true;
+                            puzzle[move.by] = true;
+                            puzzle[i] = false;
+                            continue;
+                        }
+                        
+                        /*int normal_score = score(puzzle, normal_indexes);
                         int symetric_score = score(puzzle, symetric_indexes);
                         int rotate_once_score = score(puzzle, rotate_once_indexes);
                         int rotate_twice_score = score(puzzle, rotate_twice_indexes);
                         
                         bool f = false;
                         unsigned long found = 0;
-                        //#pragma omp critical
-                        //{
+                        #pragma omp critical
+                        {
                             if(history.find(normal_score) != history.end()){
                                 found = history[normal_score];
                                 f = true;
@@ -511,7 +547,7 @@ void computeSolutions(StartingPosition& position){
                                 found = history[rotate_twice_score];
                                 f = true;
                             } 
-                        //}
+                        }
 
                         if(f){
                             solutions += found;
@@ -519,7 +555,7 @@ void computeSolutions(StartingPosition& position){
                             puzzle[move.by] = true;
                             puzzle[i] = false;
                             continue;
-                        } 
+                        }*/ 
 
                         //If the subtree has not already been computed, we compute it
                         sol.push(solutions);
