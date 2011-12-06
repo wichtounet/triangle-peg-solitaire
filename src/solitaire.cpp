@@ -496,8 +496,8 @@ void computeSolutions(StartingPosition& position){
                         
                         bool f = false;
                         unsigned long found = 0;
-                        #pragma omp critical
-                        {
+                        //#pragma omp critical
+                        //{
                             if(history.find(normal_score) != history.end()){
                                 found = history[normal_score];
                                 f = true;
@@ -511,7 +511,7 @@ void computeSolutions(StartingPosition& position){
                                 found = history[rotate_twice_score];
                                 f = true;
                             } 
-                        }
+                        //}
 
                         if(f){
                             solutions += found;
@@ -671,7 +671,7 @@ void solveMP(int hole){
     {
         #pragma omp for nowait schedule(dynamic, 1)
         for(int i = 0; i < STARTING; ++i){
-            printf("%i handled by %i \n", i, omp_get_thread_num());
+            //printf("%i handled by %i \n", i, omp_get_thread_num());
             
             StartingPosition& position = startingPositions[i];
 
