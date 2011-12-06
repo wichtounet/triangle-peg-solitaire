@@ -7,6 +7,8 @@
 #include <unordered_set>
 #include <algorithm>
 
+#include <omp.h>
+
 unsigned int levels;
 
 void precalculate();
@@ -147,7 +149,6 @@ struct Move {
 struct StartingPosition {
     std::vector<unsigned int> puzzle;
     Move move;
-    std::vector<Move> solution;
 };
 
 const int THREADS = 4;
@@ -271,16 +272,6 @@ inline void generate_rotate_twice_indexes(std::vector<unsigned int>& rotate_twic
     }
 }
 
-#define PRUNE(indexes)\
-firstScore = score(puzzle, indexes);\
-if(history.find(firstScore) != history.end()){\
-    solutions += history[firstScore];\
-    puzzle[move.from] = true;\
-    puzzle[move.by] = true;\
-    puzzle[i] = false;\
-    continue;\
-}
-
 std::vector<unsigned int> normal_indexes;
 std::vector<unsigned int> symetric_indexes;
 std::vector<unsigned int> rotate_once_indexes;
@@ -349,6 +340,16 @@ void precalculate(){
 }
 
 std::unordered_map<unsigned int, unsigned long> history;
+
+#define PRUNE(indexes)\
+firstScore = score(puzzle, indexes);\
+if(history.find(firstScore) != history.end()){\
+    solutions += history[firstScore];\
+    puzzle[move.from] = true;\
+    puzzle[move.by] = true;\
+    puzzle[i] = false;\
+    continue;\
+}\
 
 void solveFromHistory(int hole){
     std::vector<unsigned int> puzzle(((levels + 1) * levels) / 2 + 1, true);
@@ -445,49 +446,7 @@ void solveFromHistory(int hole){
             break;
         }
     }
-
-    std::cout << "Found " << solutions << " solutions" << std::endl;
     
-    solutions = 0;
-    solution.clear();
-
-    backtrace = false;
-    restart = false;
-
-    current = ((levels + 1) * levels) / 2 - 1;
-
-    while(!sol.empty()){
-        sol.pop();
-    }
-
-    for(unsigned int i = 1; i < puzzle.size(); ++i){
-        unsigned int j = 0;
-
-        //It's an hole : try to fill it        
-        if(!puzzle[i]){
-            for(; j < intos[i].size(); ++j){
-                Move& move = intos[i][j];
-
-                //A potential move is found
-                if(puzzle[move.from] && puzzle[move.by]){
-                    puzzle[move.from] = false;
-                    puzzle[move.by] = false;
-                    puzzle[i] = true;
-
-                    int firstScore;
-
-                    //The subtree has already been calculated
-                    PRUNE(normal_indexes)
-                    PRUNE(symetric_indexes)
-                    PRUNE(rotate_once_indexes)
-                    PRUNE(rotate_twice_indexes)
-
-                    assert(false);
-                }
-            }
-        }
-    }
-
     std::cout << "Found " << solutions << " solutions" << std::endl;
 }
 
@@ -500,7 +459,7 @@ void computeSolutions(StartingPosition& position){
     puzzle[firstMove.i] = true;
 
     unsigned long solutions = 0;
-    std::vector<Move> solution;// = position.solution;
+    std::vector<Move> solution;
 
     bool backtrace = false;
     bool restart = false;
@@ -529,15 +488,34 @@ void computeSolutions(StartingPosition& position){
                         puzzle[move.from] = false;
                         puzzle[move.by] = false;
                         puzzle[i] = true;
+                        
+                        int normal_score = score(puzzle, normal_indexes);
+                        int symetric_score = score(puzzle, symetric_indexes);
+                        int rotate_once_score = score(puzzle, rotate_once_indexes);
+                        int rotate_twice_score = score(puzzle, rotate_twice_indexes);
 
-                        int firstScore;
+                        unsigned long found = -1;
+                        #pragma omp critical
+                        {
+                            if(history.find(normal_score) != history.end()){
+                                found = history[normal_score];
+                            } else if(history.find(symetric_score) != history.end()) {
+                                found = history[symetric_score];
+                            } else if(history.find(rotate_once_score) != history.end()) {
+                                found = history[rotate_once_score];
+                            } else if(history.find(rotate_twice_score) != history.end()) {
+                                found = history[rotate_twice_score];
+                            } 
+                        }
 
-                        //The subtree has already been calculated
-                        PRUNE(normal_indexes)
-                        PRUNE(symetric_indexes)
-                        PRUNE(rotate_once_indexes)
-                        PRUNE(rotate_twice_indexes)
-            
+                        if(found > 0){
+                            solutions += found;
+                            puzzle[move.from] = true;
+                            puzzle[move.by] = true;
+                            puzzle[i] = false;
+                            continue;
+                        }
+
                         //If the subtree has not already been computed, we compute it
                         sol.push(solutions);
                         solutions = 0;
@@ -564,11 +542,14 @@ void computeSolutions(StartingPosition& position){
        
         //There is no more moves 
         if(!solution.empty()){
-            history[score(puzzle, normal_indexes)] = solutions;
-            history[score(puzzle, symetric_indexes)] = solutions;
-            history[score(puzzle, rotate_once_indexes)] = solutions;
-            history[score(puzzle, rotate_twice_indexes)] = solutions;
-            
+            #pragma omp critical
+            {
+                history[score(puzzle, normal_indexes)] = solutions;
+                history[score(puzzle, symetric_indexes)] = solutions;
+                history[score(puzzle, rotate_once_indexes)] = solutions;
+                history[score(puzzle, rotate_twice_indexes)] = solutions;
+            }
+
             //We undo the last move
             lastMove = solution.back();
             solution.pop_back();
@@ -586,8 +567,6 @@ void computeSolutions(StartingPosition& position){
             break;
         }
     }
-
-    std::cout << "Found " << solutions << " solutions" << std::endl;
 }
 
 void generateStartingPositions(int hole){
@@ -602,16 +581,15 @@ void generateStartingPositions(int hole){
 
         //A potential move is found
         if(puzzle[move.from] && puzzle[move.by]){
-            startingPositions[current] = {puzzle, move, {move}};
+            startingPositions[current] = {puzzle, move};
             ++current;
         }
     }
     
-    std::cout << "With first hole, current " << current << std::endl;
-
     //Then we explode the starting positions
-
     while(true){
+        int edited = false;
+
         unsigned int end = current;
         for(unsigned int i = 0; i < end; ++i){
             StartingPosition& position = startingPositions[i];
@@ -638,7 +616,6 @@ void generateStartingPositions(int hole){
             
             //If we have enough places to handle this explosion
             if(current + count - 1 < STARTING){
-                std::vector<Move> solution = position.solution;
                 bool first = true;
                 for(unsigned int h = 1; h < tempPuzzle.size(); ++h){
                     if(!tempPuzzle[h]){
@@ -647,15 +624,14 @@ void generateStartingPositions(int hole){
 
                             //A potential move is found
                             if(puzzle[move.from] && puzzle[move.by]){
-                                solution.push_back(move);
                                 if(first){
-                                    startingPositions[i] = {tempPuzzle, move, solution};
+                                    startingPositions[i] = {tempPuzzle, move};
                                     first = false;
                                 } else {
-                                    startingPositions[current] = {tempPuzzle, move, solution};
+                                    startingPositions[current] = {tempPuzzle, move};
                                     ++current;
                                 }
-                                solution.pop_back();
+                                edited = true;
                             }
                         }
                     }
@@ -664,15 +640,13 @@ void generateStartingPositions(int hole){
         }
 
         //If there are less than 2 solutions to generate
-        if(current >= STARTING - 2){
+        if(!edited || current >= STARTING - 2){
             break;
         }
     }
     
-    std::cout << "current " << current << std::endl;
-
     for(; current < STARTING; ++current){
-        startingPositions[current] = {std::vector<unsigned int>(0), Move(), std::vector<Move>(0)};
+        startingPositions[current] = {std::vector<unsigned int>(0), Move()};
     }
 }
 
@@ -680,20 +654,27 @@ void solveMP(int hole){
     std::cout << "Generate solutions for a triangular solitaire with " << levels << " levels" << std::endl;
     std::cout << "With hole at position " << hole << std::endl;
     std::cout << "With " << THREADS << " threads" << std::endl;
+    std::cout << "With " << SOLUTIONS << " solutions per thread" << std::endl;
     
     generateStartingPositions(hole);
   
     // <-- parallel start
-   
-    for(int i = 0; i < STARTING; ++i){
-        StartingPosition& position = startingPositions[i];
 
-        if(position.puzzle.empty()){
-            //Nothing to do
-        } else {
-            computeSolutions(position);
+    #pragma omp parallel num_threads(THREADS)
+    {
+        #pragma omp for nowait schedule(dynamic, 1)
+        for(int i = 0; i < STARTING; ++i){
+            //std::cout << i << "handled by " << omp_get_thread_num() << std::endl;
+            StartingPosition& position = startingPositions[i];
+
+            if(position.puzzle.empty()){
+                //Nothing to do
+            } else {
+                computeSolutions(position);
+            }
         }
     }
+    
     
     // <-- barrier
      
