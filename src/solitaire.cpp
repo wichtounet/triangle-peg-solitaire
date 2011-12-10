@@ -21,7 +21,7 @@ struct StartingPosition {
     Move move;
 };
 
-const unsigned int THREADS = 16;
+const unsigned int THREADS = 1;
 const unsigned int STARTING = 128;
 
 unsigned int levels;
@@ -393,9 +393,16 @@ void computeSolutions(unsigned int i){
                         int symetric_score = score(puzzle, symetric_indexes);
                         int rotate_once_score = score(puzzle, rotate_once_indexes);
                         int rotate_twice_score = score(puzzle, rotate_twice_indexes);
+            
+//                        int max_score = std::max(normal_score, std::max(symetric_score, std::max(rotate_once_score, rotate_twice_score)));
                        
                         #pragma omp critical
                         {
+ /*                           if(history.find(max_score) != history.end()){
+                                recovered = history[max_score];
+                                found = true;
+                            }*/
+
                             if(history.find(normal_score) != history.end()){
                                 recovered = history[normal_score];
                                 found = true;
@@ -450,12 +457,16 @@ void computeSolutions(unsigned int i){
             int rotate_once_score = score(puzzle, rotate_once_indexes);
             int rotate_twice_score = score(puzzle, rotate_twice_indexes);
 
+            //int max_score = std::max(normal_score, std::max(symetric_score, std::max(rotate_once_score, rotate_twice_score)));
+
             #pragma omp critical
             {
                 history[normal_score] = solutions;
                 history[symetric_score] = solutions;
                 history[rotate_once_score] = solutions;
                 history[rotate_twice_score] = solutions;
+
+                //history[max_score] = solutions;
             }
 
             //We undo the last move
