@@ -21,8 +21,8 @@ struct StartingPosition {
     Move move;
 };
 
-const unsigned int THREADS = 1;
-const unsigned int STARTING = 512;
+const unsigned int THREADS = 16;
+const unsigned int STARTING = 128;
 
 unsigned int levels;
 unsigned long globalSolutions;
@@ -388,14 +388,14 @@ void computeSolutions(unsigned int i){
                       
                         bool found = false;
                         unsigned long recovered = 0;
+                            
+                        int normal_score = score(puzzle, normal_indexes);
+                        int symetric_score = score(puzzle, symetric_indexes);
+                        int rotate_once_score = score(puzzle, rotate_once_indexes);
+                        int rotate_twice_score = score(puzzle, rotate_twice_indexes);
                        
                         #pragma omp critical
                         {
-                            int normal_score = score(puzzle, normal_indexes);
-                            int symetric_score = score(puzzle, symetric_indexes);
-                            int rotate_once_score = score(puzzle, rotate_once_indexes);
-                            int rotate_twice_score = score(puzzle, rotate_twice_indexes);
-                        
                             if(history.find(normal_score) != history.end()){
                                 recovered = history[normal_score];
                                 found = true;
@@ -445,14 +445,13 @@ void computeSolutions(unsigned int i){
        
         //There is no more moves 
         if(!solution.empty()){
-
-            #pragma omp critical
-            {
             int normal_score = score(puzzle, normal_indexes);
             int symetric_score = score(puzzle, symetric_indexes);
             int rotate_once_score = score(puzzle, rotate_once_indexes);
             int rotate_twice_score = score(puzzle, rotate_twice_indexes);
-            
+
+            #pragma omp critical
+            {
                 history[normal_score] = solutions;
                 history[symetric_score] = solutions;
                 history[rotate_once_score] = solutions;
