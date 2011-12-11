@@ -3,18 +3,34 @@
 /* Utility functions */
 
 template<typename T>
-bool CAS32(T old, T value, T* ptr){
+bool inline CAS32(T old, T value, T* ptr){
     return __sync_bool_compare_and_swap(ptr, old, value);
 }
 
 template<typename T>
-bool CASPTR(T** ptr, T* old, T* value){
+bool inline CASPTR(T** ptr, T* old, T* value){
     return __sync_bool_compare_and_swap(ptr, old, value);    
 }
 
 template<typename T>
-T FetchAndIncrement(T* ptr){
+T inline FetchAndIncrement(T* ptr){
     return __sync_fetch_and_add(ptr, 1);      
+}
+
+unsigned long inline Reverse(unsigned long v){
+    unsigned long reversed = v;
+
+    int s = sizeof(v) * 8 - 1;
+
+    for(v >>= 1; v; v >>= 1){
+        reversed <<= 1;
+        reversed |= v & 1;
+        s--;
+    }
+
+    reversed <<= s;
+
+    return reversed;
 }
 
 /* Concurrent Hash Map */
@@ -37,23 +53,7 @@ static unsigned long ItemCount;
 static unsigned long Size = 2;
 
 #define MAXLOAD 2
-#define CHAR_BIT 8
 
-unsigned long inline Reverse32(unsigned long v){
-    unsigned long reversed = v;
-
-    int s = sizeof(v) * CHAR_BIT - 1;
-
-    for(v >>= 1; v; v >>= 1){
-        reversed <<= 1;
-        reversed |= v & 1;
-        s--;
-    }
-
-    reversed <<= s;
-
-    return reversed;
-}
 
 NODE* GetSecondaryBucket(unsigned long key);
 bool ListInsert(NODE* head, NODE* node);
@@ -96,7 +96,7 @@ NODE* InitializeBucket(unsigned long key){
 
     if ((sentinel = (NODE*) malloc(sizeof(NODE))) != NULL){
         sentinel->sentinel = true;
-        sentinel->reversedKey = key = Reverse32(key);
+        sentinel->reversedKey = key = Reverse(key);
         sentinel->next = NULL;
 
         if(!ListInsert(parentBucket, sentinel)){
@@ -202,7 +202,7 @@ bool Set(unsigned long item, unsigned long value){
     }
 
     newNode->sentinel = false;
-    newNode->reversedKey = Reverse32(item);
+    newNode->reversedKey = Reverse(item);
     newNode->item = item;
     newNode->value = value;
 
@@ -232,7 +232,7 @@ bool Contains(unsigned long item){
         return false;
     }
 
-    return Find(head, Reverse32(item), false, &pred, &curr);
+    return Find(head, Reverse(item), false, &pred, &curr);
 }
 
 unsigned long Get(unsigned long item){
@@ -244,6 +244,6 @@ unsigned long Get(unsigned long item){
         return false;
     }
 
-    Find(head, Reverse32(item), false, &pred, &curr);
+    Find(head, Reverse(item), false, &pred, &curr);
     return curr->value;
 }
