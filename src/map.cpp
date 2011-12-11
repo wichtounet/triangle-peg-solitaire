@@ -27,6 +27,11 @@ struct NODE {
     NODE* next;
 };
 
+union CONVERSION {
+    NODE* node;
+    unsigned long value;
+};
+
 static NODE*** PrimaryBuckets;
 static unsigned long ItemCount;
 static unsigned long Size = 2;
@@ -48,10 +53,6 @@ unsigned long inline Reverse32(unsigned long v){
     reversed <<= s;
 
     return reversed;
-}
-
-unsigned long inline HashCode(unsigned long item){
-    return item;
 }
 
 NODE* GetSecondaryBucket(unsigned long key);
@@ -157,11 +158,6 @@ bool ListInsert(NODE* head, NODE* node){
     }
 }
 
-union CONVERSION {
-    NODE* node;
-    unsigned long value;
-};
-
 bool Find(NODE* h, unsigned long rKey, bool s, NODE** p, NODE** c){
     CONVERSION next;
 
@@ -200,21 +196,17 @@ bool Find(NODE* h, unsigned long rKey, bool s, NODE** p, NODE** c){
 bool Set(unsigned long item, unsigned long value){
     NODE* bucket;
     NODE* newNode;
-    unsigned long size;
-    unsigned long key;
 
     if((newNode = (NODE*) malloc(sizeof(NODE))) == NULL){
         return false;
     }
 
-    key = HashCode(item);
-    
     newNode->sentinel = false;
-    newNode->reversedKey = Reverse32(key);
+    newNode->reversedKey = Reverse32(item);
     newNode->item = item;
     newNode->value = value;
 
-    if((bucket = GetSecondaryBucket(key % Size)) == NULL){
+    if((bucket = GetSecondaryBucket(item % Size)) == NULL){
         return false;
     }
 
@@ -223,7 +215,7 @@ bool Set(unsigned long item, unsigned long value){
         return false;
     }
 
-    size = Size;
+    unsigned long size = Size;
     if(FetchAndIncrement(&ItemCount) / size >= MAXLOAD){
         CAS32(size, size*2, &Size);
     }
@@ -231,22 +223,16 @@ bool Set(unsigned long item, unsigned long value){
     return true;
 }
 
-//Don't care about Remove
-
 bool Contains(unsigned long item){
     NODE* head;
     NODE* curr;
     NODE* pred;
 
-    unsigned long key = HashCode(item);
-
-    if((head = GetSecondaryBucket(key % Size)) == NULL){
+    if((head = GetSecondaryBucket(item % Size)) == NULL){
         return false;
     }
 
-    key = Reverse32(key);
-
-    return Find(head, key, false, &pred, &curr);
+    return Find(head, Reverse32(item), false, &pred, &curr);
 }
 
 unsigned long Get(unsigned long item){
@@ -254,14 +240,10 @@ unsigned long Get(unsigned long item){
     NODE* curr;
     NODE* pred;
 
-    unsigned long key = HashCode(item);
-
-    if((head = GetSecondaryBucket(key % Size)) == NULL){
+    if((head = GetSecondaryBucket(item % Size)) == NULL){
         return false;
     }
 
-    key = Reverse32(key);
-
-    Find(head, key, false, &pred, &curr);
+    Find(head, Reverse32(item), false, &pred, &curr);
     return curr->value;
 }

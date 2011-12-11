@@ -23,7 +23,7 @@ struct StartingPosition {
     Move move;
 };
 
-const unsigned int THREADS = 1;
+const unsigned int THREADS = 8;
 const unsigned int STARTING = 128;
 
 unsigned int levels;
