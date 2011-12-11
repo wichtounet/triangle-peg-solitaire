@@ -20,12 +20,17 @@ endif()
 
 set(EXECUTABLE_OUTPUT_PATH bin)
 
-include_directories(include)
+file(
+	GLOB_RECURSE
+	solitaire_source_files
+	src/solitaire.cpp
+)
 
 file(
 	GLOB_RECURSE
-	source_files
-	src/*
+	main_source_files
+	src/main.cpp
 )
 
-add_executable(solitaire ${source_files})
+add_executable(solitaire ${solitaire_source_files})
+add_executable(main ${main_source_files})

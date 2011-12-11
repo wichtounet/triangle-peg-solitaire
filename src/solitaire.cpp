@@ -9,6 +9,8 @@
 
 #include <omp.h>
 
+#include "map.cpp"
+
 struct Move {
     unsigned int i;//hole
     unsigned int j;//intos[hole][j]
@@ -36,7 +38,7 @@ std::vector<unsigned int> rotate_twice_indexes;
 
 std::vector<std::vector<Move>> intos;
 
-std::unordered_map<unsigned int, unsigned long> history;
+//std::unordered_map<unsigned int, unsigned long> history;
 
 void precalculate();
 
@@ -50,6 +52,9 @@ int main(int argc, const char* argv[]) {
     } else {
         levels = strtol(argv[1], 0, 10); 
         int hole = strtol(argv[2], 0, 10); 
+
+        //Initialize the hash map
+        Initialize();
 
         //Precalculattions needed by both versions
         precalculate();
@@ -396,24 +401,24 @@ void computeSolutions(unsigned int i){
             
 //                        int max_score = std::max(normal_score, std::max(symetric_score, std::max(rotate_once_score, rotate_twice_score)));
                        
-                        #pragma omp critical
+                        //#pragma omp critical
                         {
  /*                           if(history.find(max_score) != history.end()){
                                 recovered = history[max_score];
                                 found = true;
                             }*/
 
-                            if(history.find(normal_score) != history.end()){
-                                recovered = history[normal_score];
+                            if(Contains(normal_score)){
+                                recovered = Get(normal_score);
                                 found = true;
-                            } else if(history.find(symetric_score) != history.end()){
-                                recovered = history[symetric_score];
+                            } else if(Contains(symetric_score)){
+                                recovered = Get(symetric_score);
                                 found = true;
-                            } else if(history.find(rotate_once_score) != history.end()){
-                                recovered = history[rotate_once_score];
+                            } else if(Contains(rotate_once_score)){
+                                recovered = Get(rotate_once_score);
                                 found = true;
-                            } else if(history.find(rotate_twice_score) != history.end()){
-                                recovered = history[rotate_twice_score];
+                            } else if(Contains(rotate_twice_score)){
+                                recovered = Get(rotate_twice_score);
                                 found = true;
                             }
                         }
@@ -459,12 +464,12 @@ void computeSolutions(unsigned int i){
 
             //int max_score = std::max(normal_score, std::max(symetric_score, std::max(rotate_once_score, rotate_twice_score)));
 
-            #pragma omp critical
+            //#pragma omp critical
             {
-                history[normal_score] = solutions;
-                history[symetric_score] = solutions;
-                history[rotate_once_score] = solutions;
-                history[rotate_twice_score] = solutions;
+                Set(normal_score, solutions);
+                Set(symetric_score, solutions);
+                Set(rotate_once_score, solutions);
+                Set(rotate_twice_score, solutions);
 
                 //history[max_score] = solutions;
             }
@@ -487,7 +492,7 @@ void computeSolutions(unsigned int i){
         }
     }
 
-    #pragma omp flush(globalSolutions)
+    //#pragma omp flush(globalSolutions)
 
     #pragma omp atomic
     globalSolutions += solutions;
