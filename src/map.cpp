@@ -54,7 +54,6 @@ static unsigned long Size = 2;
 
 #define MAXLOAD 2
 
-
 NODE* GetSecondaryBucket(unsigned long key);
 bool ListInsert(NODE* head, NODE* node);
 bool Find(NODE* head, unsigned long reversedKey, bool isSential, NODE** pred, NODE** curr);
@@ -223,27 +222,18 @@ bool Set(unsigned long item, unsigned long value){
     return true;
 }
 
-bool Contains(unsigned long item){
+NODE* Get(unsigned long item){
     NODE* head;
     NODE* curr;
     NODE* pred;
 
     if((head = GetSecondaryBucket(item % Size)) == NULL){
-        return false;
+        return NULL;
     }
 
-    return Find(head, Reverse(item), false, &pred, &curr);
-}
-
-unsigned long Get(unsigned long item){
-    NODE* head;
-    NODE* curr;
-    NODE* pred;
-
-    if((head = GetSecondaryBucket(item % Size)) == NULL){
-        return false;
+    if(!Find(head, Reverse(item), false, &pred, &curr)){
+        return NULL;
     }
 
-    Find(head, Reverse(item), false, &pred, &curr);
-    return curr->value;
+    return curr;
 }

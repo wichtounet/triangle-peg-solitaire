@@ -23,7 +23,7 @@ struct StartingPosition {
     Move move;
 };
 
-const unsigned int THREADS = 8;
+const unsigned int THREADS = 16;
 const unsigned int STARTING = 128;
 
 unsigned int levels;
@@ -37,8 +37,6 @@ std::vector<unsigned int> rotate_once_indexes;
 std::vector<unsigned int> rotate_twice_indexes;
 
 std::vector<std::vector<Move>> intos;
-
-//std::unordered_map<unsigned int, unsigned long> history;
 
 void precalculate();
 
@@ -391,40 +389,36 @@ void computeSolutions(unsigned int i){
                         puzzle[move.by] = false;
                         puzzle[i] = true;
                       
-                        bool found = false;
-                        unsigned long recovered = 0;
-                            
-                        int normal_score = score(puzzle, normal_indexes);
-                        int symetric_score = score(puzzle, symetric_indexes);
-                        int rotate_once_score = score(puzzle, rotate_once_indexes);
-                        int rotate_twice_score = score(puzzle, rotate_twice_indexes);
-            
-//                        int max_score = std::max(normal_score, std::max(symetric_score, std::max(rotate_once_score, rotate_twice_score)));
-                       
-                        //#pragma omp critical
-                        {
- /*                           if(history.find(max_score) != history.end()){
-                                recovered = history[max_score];
-                                found = true;
-                            }*/
-
-                            if(Contains(normal_score)){
-                                recovered = Get(normal_score);
-                                found = true;
-                            } else if(Contains(symetric_score)){
-                                recovered = Get(symetric_score);
-                                found = true;
-                            } else if(Contains(rotate_once_score)){
-                                recovered = Get(rotate_once_score);
-                                found = true;
-                            } else if(Contains(rotate_twice_score)){
-                                recovered = Get(rotate_twice_score);
-                                found = true;
-                            }
-                        }
+                        NODE* normal_node = Get(score(puzzle, normal_indexes));
+                        if(normal_node){
+                            solutions += normal_node->value;
+                            puzzle[move.from] = true;
+                            puzzle[move.by] = true;
+                            puzzle[i] = false;
+                            continue;
+                        } 
                         
-                        if(found){
-                            solutions += recovered;
+                        NODE* symetric_node = Get(score(puzzle, symetric_indexes));
+                        if(symetric_node){
+                            solutions += symetric_node->value;
+                            puzzle[move.from] = true;
+                            puzzle[move.by] = true;
+                            puzzle[i] = false;
+                            continue;
+                        } 
+                        
+                        NODE* rotate_once_node = Get(score(puzzle, rotate_once_indexes));
+                        if(rotate_once_node){
+                            solutions += rotate_once_node->value;
+                            puzzle[move.from] = true;
+                            puzzle[move.by] = true;
+                            puzzle[i] = false;
+                            continue;
+                        } 
+                        
+                        NODE* rotate_twice_node = Get(score(puzzle, rotate_twice_indexes));
+                        if(rotate_twice_node){
+                            solutions += rotate_twice_node->value;
                             puzzle[move.from] = true;
                             puzzle[move.by] = true;
                             puzzle[i] = false;
@@ -457,22 +451,10 @@ void computeSolutions(unsigned int i){
        
         //There is no more moves 
         if(!solution.empty()){
-            int normal_score = score(puzzle, normal_indexes);
-            int symetric_score = score(puzzle, symetric_indexes);
-            int rotate_once_score = score(puzzle, rotate_once_indexes);
-            int rotate_twice_score = score(puzzle, rotate_twice_indexes);
-
-            //int max_score = std::max(normal_score, std::max(symetric_score, std::max(rotate_once_score, rotate_twice_score)));
-
-            //#pragma omp critical
-            {
-                Set(normal_score, solutions);
-                Set(symetric_score, solutions);
-                Set(rotate_once_score, solutions);
-                Set(rotate_twice_score, solutions);
-
-                //history[max_score] = solutions;
-            }
+            Set(score(puzzle, normal_indexes), solutions);
+            Set(score(puzzle, symetric_indexes), solutions);
+            Set(score(puzzle, rotate_once_indexes), solutions);
+            Set(score(puzzle, rotate_twice_indexes), solutions);
 
             //We undo the last move
             lastMove = solution.back();
@@ -491,8 +473,6 @@ void computeSolutions(unsigned int i){
             break;
         }
     }
-
-    //#pragma omp flush(globalSolutions)
 
     #pragma omp atomic
     globalSolutions += solutions;
