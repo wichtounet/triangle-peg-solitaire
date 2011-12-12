@@ -3,18 +3,8 @@
 /* Utility functions */
 
 template<typename T>
-bool inline CAS32(T old, T value, T* ptr){
-    return __sync_bool_compare_and_swap(ptr, old, value);
-}
-
-template<typename T>
 bool inline CASPTR(T** ptr, T* old, T* value){
     return __sync_bool_compare_and_swap(ptr, old, value);    
-}
-
-template<typename T>
-T inline FetchAndIncrement(T* ptr){
-    return __sync_fetch_and_add(ptr, 1);      
 }
 
 unsigned long inline Reverse(unsigned long v){
@@ -215,8 +205,8 @@ bool Set(unsigned long item, unsigned long value){
     }
 
     unsigned long size = Size;
-    if(FetchAndIncrement(&ItemCount) / size >= MAXLOAD){
-        CAS32(size, size*2, &Size);
+    if(__sync_fetch_and_add(&ItemCount, 1) / size >= MAXLOAD){
+        __sync_bool_compare_and_swap(&Size, size, 2*size);
     }
 
     return true;
